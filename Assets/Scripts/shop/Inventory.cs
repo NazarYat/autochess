@@ -48,9 +48,11 @@ public class Inventory : MonoBehaviour
     }
     public void UseFigure((string, int) id)
     {
-        var figure = Figures.FirstOrDefault(f => f.Name == id.Item1 && f.Price == id.Item2);
+        var figure = Figures.FirstOrDefault(f => f.Name == id.Item1 && f.UpgradePrice == id.Item2);
 
-        if (figure != null)
+        if (figure == null) return;
+
+        if (!UsedFigures.ContainsKey(id))
         {
             UsedFigures.Add(id, 1);
         }
@@ -69,19 +71,49 @@ public class Inventory : MonoBehaviour
     private void UpdateView()
     {
         var col = 0;
-        foreach (var g in Figures.GroupBy(f => (f.Name, f.Price)))
+        foreach (var g in Figures.GroupBy(f => (f.Name, f.UpgradePrice)))
         {
-            if (InventoryRepresentativeElements.TryGetValue(g.Key.Item1, out var go))
+            var count = g.Count();
+
+            if (UsedFigures.TryGetValue(g.Key, out var usedCount))
             {
-                go.transform.Find("CountText").GetComponent<Text>().text = g.Count().ToString();
+                count -= usedCount;
+            }
+
+
+            if (InventoryRepresentativeElements.TryGetValue(g.Key, out var go))
+            {
+                if (count <= 0)
+                {
+                    Destroy(go);
+                    InventoryRepresentativeElements.Remove(g.Key);
+                    continue;
+                }
+                
+                go.transform.Find("CountText").GetComponent<Text>().text = count.ToString();
             }
             else
             {
+                if (count <= 0) continue;
+                
                 var item = Instantiate(itemPrefab, transform);
                 InventoryRepresentativeElements.Add(g.Key, item);
 
                 item.transform.Find("NameText").GetComponent<Text>().text = g.Key.Item1;
                 item.transform.Find("PriceText").GetComponent<Text>().text = "$" + g.Key.Item2.ToString();
+                item.transform.Find("UpgradeButton").GetComponent<Button>().onClick.AddListener(() =>
+                {
+                    if (Money - g.FirstOrDefault().UpgradePrice < 0) return;
+                    RemoveMoney(g.FirstOrDefault().UpgradePrice);
+                    g.FirstOrDefault()?.Upgrade();
+                    UpdateView();
+                });
+
+                item.transform.Find("PlaceButton").GetComponent<Button>().onClick.AddListener(() =>
+                {
+                    UseFigure(g.Key);
+                });
+
 
                 var trans = item.GetComponent<RectTransform>();
 
@@ -90,8 +122,8 @@ public class Inventory : MonoBehaviour
 
                 trans.localPosition = new Vector3(posX, posY, 0);
 
-                col++;
             }
+            col++;
         }
     }
     // Update is called once per frame

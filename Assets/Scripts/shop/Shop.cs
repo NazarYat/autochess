@@ -20,7 +20,7 @@ public class ShopItemData
     }
     public ShopItemData Copy()
     {
-        var copy = new ShopItemData(Name, Icon, Price, Prefab);
+        return new ShopItemData(Name, Icon, Price, Prefab);
     }
     public void Upgrade()
     {
@@ -77,8 +77,7 @@ public class Shop : MonoBehaviour
         // itemObject.transform.Find("IconImage").GetComponent<Image>().sprite = itemData.Icon;
         itemObject.transform.Find("PriceText").GetComponent<Text>().text = "$" + itemData.Price;
 
-        Button buyButton = itemObject.transform.Find("BuyButton").GetComponent<Button>();
-        buyButton.onClick.AddListener(() => OnBuyButtonClicked(itemData));
+        itemObject.transform.Find("BuyButton").GetComponent<Button>().onClick.AddListener(() => OnBuyButtonClicked(itemData));
     }
 
     void OnBuyButtonClicked(ShopItemData item)
