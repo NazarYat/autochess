@@ -19,8 +19,37 @@ public class Inventory : MonoBehaviour
             BalanceText.text = "$" + value.ToString();
         }
     }
-
+    private bool _canPlaceFigures = false;
+    public bool CanPalceFigures
+    {
+        get => _canPlaceFigures;
+        set
+        {
+            if (_canPlaceFigures == value) return;
+            _canPlaceFigures = value;
+            foreach (var item in InventoryRepresentativeElements)
+            {
+                item.Value.transform.Find("PlaceButton").gameObject.SetActive(value);
+            }
+        }
+    }
+    private bool _canUpgradeFigures = false;
+    public bool CanUpgradeFigures
+    {
+        get => _canUpgradeFigures;
+        set
+        {
+            if (_canUpgradeFigures == value) return;
+            _canUpgradeFigures = value;
+            foreach (var item in InventoryRepresentativeElements)
+            {
+                item.Value.transform.Find("UpgradeButton").gameObject.SetActive(value);
+                item.Value.transform.Find("PriceText").gameObject.SetActive(value);
+            }
+        }
+    }
     public Text BalanceText;
+    public Board Board;
     public GameObject itemPrefab;
     public Vector2 ItemOffset = new Vector2(0, 0);
     public Vector2 ItemSpacing = new Vector2(0, 0);
@@ -46,11 +75,27 @@ public class Inventory : MonoBehaviour
 
         UpdateView();
     }
-    public void UseFigure((string, int) id)
-    {
-        var figure = Figures.FirstOrDefault(f => f.Name == id.Item1 && f.UpgradePrice == id.Item2);
+    private ShopItemData _selectedFigure;
+    public ShopItemData SelectedFigure 
+    { 
+        get => _selectedFigure;
+        private set
+        {
+            if (_selectedFigure == value) return;
+            _selectedFigure = value;
 
+            Board.IsPlacingFigure = value != null;
+        }
+    }
+    public void UseSelectedFigure() => UseFigure(SelectedFigure);
+    public void UseFigure(ShopItemData figure)
+    {
         if (figure == null) return;
+        var figures = Figures.Where(f => f.Name == figure.Name && f.Level == figure.Level);
+
+        if (figures.Count() == 0) return;
+
+        var id = (figure.Name, figure.Level);
 
         if (!UsedFigures.ContainsKey(id))
         {
@@ -58,8 +103,17 @@ public class Inventory : MonoBehaviour
         }
         else
         {
-            UsedFigures[id]++;
+            if (UsedFigures[id] < figures.Count())
+            {
+                UsedFigures[id]++;
+            }
         }
+
+        if (UsedFigures[id] >= figures.Count() && SelectedFigure == figure)
+        {
+            SelectedFigure = null;
+        }
+
         UpdateView();
     }
 
@@ -100,7 +154,7 @@ public class Inventory : MonoBehaviour
                 InventoryRepresentativeElements.Add(g.Key, item);
 
                 item.transform.Find("NameText").GetComponent<Text>().text = g.Key.Item1;
-                item.transform.Find("PriceText").GetComponent<Text>().text = "$" + g.Key.Item2.ToString();
+                item.transform.Find("PriceText").GetComponent<Text>().text = "$" + g.First().UpgradePrice.ToString();
                 item.transform.Find("UpgradeButton").GetComponent<Button>().onClick.AddListener(() =>
                 {
                     if (Money - g.FirstOrDefault().UpgradePrice < 0) return;
@@ -109,9 +163,12 @@ public class Inventory : MonoBehaviour
                     UpdateView();
                 });
 
+                item.transform.Find("PlaceButton").gameObject.SetActive(CanPalceFigures);
+                item.transform.Find("UpgradeButton").gameObject.SetActive(CanUpgradeFigures);
+                item.transform.Find("PriceText").gameObject.SetActive(CanUpgradeFigures);
                 item.transform.Find("PlaceButton").GetComponent<Button>().onClick.AddListener(() =>
                 {
-                    UseFigure(g.Key);
+                    SelectedFigure = g.FirstOrDefault();
                 });
 
 

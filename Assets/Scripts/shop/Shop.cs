@@ -9,7 +9,7 @@ public class ShopItemData
     public int Price;
     public GameObject Prefab;
     public int UpgradePrice;
-    public int Level;
+    public int Level = 1;
 
     public ShopItemData(string name, Sprite icon, int price, GameObject prefab)
     {
@@ -25,7 +25,7 @@ public class ShopItemData
     public void Upgrade()
     {
         Level++;
-        Price += UpgradePrice;
+        UpgradePrice += (int) (UpgradePrice * 1.5);
     }
 }
 

@@ -8,12 +8,14 @@ public class CellsGenerator : MonoBehaviour
     public int rows = 5;
     public int columns = 5;
     public float cellSize = 1.0f;
-    public GameObject[,] cells;
+    public Cell[,] cells;
     public float cellOffset = 0.1f;
+    public Board Board;
+    public Inventory Inventory;
 
     public void GenerateCells()
     {
-        cells = new GameObject[rows, columns];
+        cells = new Cell[rows, columns];
 
         foreach (Transform child in transform)
         {
@@ -29,12 +31,16 @@ public class CellsGenerator : MonoBehaviour
                 cell.transform.parent = this.transform;
                 cell.transform.localPosition = new Vector3(x * cellSize + (cellSize * 0.5f), 0, y * cellSize + (cellSize * 0.5f));
 
-                if (y > 1)
+                if (y <= 1)
                 {
-                    cell.GetComponent<MeshRenderer>().enabled = false;
+
+                    cell.GetComponent<Cell>().IsSpawnPoint = true;
                 }
 
-                cells[x, y] = cell;
+                cell.GetComponent<Cell>().Board = Board;
+                cell.GetComponent<Cell>().Inventory = Inventory;
+
+                cells[x, y] = cell.GetComponent<Cell>();
             }
         }
     }

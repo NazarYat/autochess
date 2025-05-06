@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -31,37 +31,73 @@ public class Board : MonoBehaviour
             CellGenerator.columns = value;
         }
     }
-    public GameObject[,] Cells => CellGenerator.cells;
+    public Cell[,] Cells => CellGenerator.cells;
 
     public List<FigureBase> Figures { get; private set; } = new List<FigureBase>();
     public int ActionDurationMilliseconds = 1000;
     public int InitialBalane = 100;
     public Inventory Inventory;
     public Text TimerText;
+    public Text RoundText;
     public GameObject ShopGameObject;
 
     public bool IsGameActive = false;
+    private int _roundNumber = 0;
+    public int RoundNumber
+    {
+        get => _roundNumber;
+        set
+        {
+            if (_roundNumber == value) return;
+            _roundNumber = value;
+            if (RoundText != null)
+                RoundText.text = $"Round: {value}";
+        }
+    }
+    private bool _isPlacingFigure = false;
+    public bool IsPlacingFigure
+    {
+        get => _isPlacingFigure;
+        set
+        {
+            if (_isPlacingFigure == value) return;
+            _isPlacingFigure = value;
+
+            foreach (var c in Cells)
+            {
+                c.IsSpawnPointActive = value;
+            }
+        }
+    }
 
     public void StartGame()
     {
+        RoundNumber++;
         Inventory.AddMoney(InitialBalane);
         IsGameActive = true;
-        StartCoroutine(Tick());
         StartShopPeriod();
     }
     public void StartShopPeriod()
     {
         ShopGameObject.SetActive(true);
+        Inventory.CanUpgradeFigures = true;
 
-        StartCoroutine(Timer(60, () =>
+        StartCoroutine(Timer(10, () =>
         {
             ShopGameObject.SetActive(false);
+            StartBattlePeriod();
         }));
     }
-    public void EndGame()
+    public void StartBattlePeriod()
     {
-        IsGameActive = false;
-        StopAllCoroutines();
+        Inventory.CanUpgradeFigures = false;
+        Inventory.CanPalceFigures = true;
+        ShopGameObject.SetActive(false);
+        StartCoroutine(Tick());
+        StartCoroutine(Timer(180, () =>
+        {
+            ProcessGameEnd();
+        }));
     }
 
     public IEnumerator Timer(int seconds, Action timeoutCallBack)
@@ -94,14 +130,19 @@ public class Board : MonoBehaviour
                 ProcessGameEnd();
             }
         }
+        yield break;
     }
 
     private void ProcessGameEnd()
     {
+        IsGameActive = false;
+        Inventory.CanPalceFigures = false;
         foreach (var figure in Figures)
         {
             Destroy(figure.gameObject);
         }
+        StopAllCoroutines();
+        StartGame();
     }
 
     // Start is called before the first frame update
