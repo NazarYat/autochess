@@ -6,6 +6,7 @@ public class Cell : MonoBehaviour
 {
     public Board Board;
     public Inventory Inventory;
+    
     private GameObject _previewFigure = null;
     private FigureBase _figure = null;
     public FigureBase Figure
@@ -43,26 +44,34 @@ public class Cell : MonoBehaviour
             UpdateView();
         }
     }
+    public Vector2 Coordinates { get; set; } = new Vector2(0, 0);
     public void UpdateView() => GetComponent<MeshRenderer>().enabled = CanPreview;
     public bool CanPreview => IsSpawnPoint && _figure == null && IsSpawnPointActive && Inventory.SelectedFigure != null;
-    public void LeftMousButtonClick()
-    {
-        Inventory.UseFigure(Inventory.SelectedFigure);
-    }
     void OnMouseEnter()
     {
         if (!CanPreview) return;
-        CreatePreviewFigure(Inventory.SelectedFigure.Prefab);
+        CreatePreviewFigure();
     }
     void OnMouseExit()
     {
         if (!CanPreview) return;
         DestroyPreviewFigure();
     }
-    public void CreatePreviewFigure(GameObject figurePrefab)
+    void OnMouseDown()
+    {
+        if (!CanPreview) return;
+        if (Inventory.SelectedFigure == null) return;
+        
+        if (Input.GetMouseButtonDown(0))
+        {
+            PlaceFigure(Inventory.SelectedFigure.CreateInstance(transform));
+        }
+    }
+    
+    public void CreatePreviewFigure()
     {
         if (_previewFigure != null) return;
-        var f = Instantiate(figurePrefab, transform.position, Quaternion.identity);
+        var f = Inventory.SelectedFigure.CreateInstance(transform);
         f.transform.SetParent(transform);
         _previewFigure = f;
     }
@@ -71,13 +80,15 @@ public class Cell : MonoBehaviour
         if (_previewFigure == null) return;
         Destroy(_previewFigure);
     }
-    public bool PlaceFigure(GameObject figurePrefab)
+    public bool PlaceFigure(GameObject f)
     {
         if (Figure != null) return false;
-        var f = Instantiate(figurePrefab, transform.position, Quaternion.identity);
         f.transform.SetParent(transform);
 
+        Inventory.UseFigure(Inventory.SelectedFigure);
+
         Figure = f.GetComponent<FigureBase>();
+        Figure.CurrentCell = this;
 
         return true;
     }
@@ -91,6 +102,6 @@ public class Cell : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 }

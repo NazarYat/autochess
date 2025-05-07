@@ -41,6 +41,7 @@ public class CellsGenerator : MonoBehaviour
                 cell.GetComponent<Cell>().Inventory = Inventory;
 
                 cells[x, y] = cell.GetComponent<Cell>();
+                cell.GetComponent<Cell>().Coordinates = new Vector2(x, y);
             }
         }
     }

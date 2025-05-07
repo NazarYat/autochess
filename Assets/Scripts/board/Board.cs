@@ -69,7 +69,72 @@ public class Board : MonoBehaviour
             }
         }
     }
+    public Cell[] GetCellsInTouch(int x, int y)
+    {
+        List<Cell> cells = new List<Cell>();
 
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                // Skip the center cell itself
+                if (dx == 0 && dy == 0)
+                    continue;
+
+                int newX = x + dx;
+                int newY = y + dy;
+
+                // Check bounds
+                if (newX >= 0 && newX < SizeX && newY >= 0 && newY < SizeY)
+                {
+                    if (Cells[newX, newY].Figure != null)
+                    {
+                        cells.Add(Cells[newX, newY]);
+                    }
+                }
+            }
+        }
+
+        return cells.ToArray();
+    }
+    public Cell FindNearestCellWithFigure(int x, int y)
+    {
+        bool[,] visited = new bool[SizeX, SizeY];
+        Queue<(int x, int y)> queue = new Queue<(int x, int y)>();
+
+        queue.Enqueue((x, y));
+        visited[x, y] = true;
+
+        while (queue.Count > 0)
+        {
+            var (cx, cy) = queue.Dequeue();
+            Cell current = Cells[cx, cy];
+
+            if (current.Figure != null && current.Figure.PlayerIndex != 1)
+                return current;
+
+            // Check neighbors (8 directions)
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    int nx = cx + dx;
+                    int ny = cy + dy;
+
+                    if (dx == 0 && dy == 0)
+                        continue;
+
+                    if (nx >= 0 && nx < SizeX && ny >= 0 && ny < SizeY && !visited[nx, ny])
+                    {
+                        visited[nx, ny] = true;
+                        queue.Enqueue((nx, ny));
+                    }
+                }
+            }
+        }
+
+        return null; // No cell with a figure found
+    }
     public void StartGame()
     {
         RoundNumber++;
@@ -120,21 +185,25 @@ public class Board : MonoBehaviour
         {
             foreach (var figure in Figures)
             {
+                Debug.Log("Start figure action");
                 figure.Action(ActionDurationMilliseconds);
             }
             
-            yield return new WaitForSeconds(ActionDurationMilliseconds);
+            yield return new WaitForSeconds(ActionDurationMilliseconds / 1000.0f);
 
-            if (Figures.GroupBy(figure => figure.PlayerIndex).Count() <= 0)
-            {
-                ProcessGameEnd();
-            }
+            //if (Figures.GroupBy(figure => figure.PlayerIndex).Count() <= 0)
+            //{
+            //    ProcessGameEnd();
+            //    yield break;
+            //}
         }
+        ProcessGameEnd();
         yield break;
     }
 
     private void ProcessGameEnd()
     {
+        Debug.Log("Game Over");
         IsGameActive = false;
         Inventory.CanPalceFigures = false;
         foreach (var figure in Figures)

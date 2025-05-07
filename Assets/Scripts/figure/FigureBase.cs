@@ -1,17 +1,34 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using System;
 using System.Collections.Generic;
 
 public abstract class FigureBase : MonoBehaviour
 {
-    public int PlayerIndex { get; set; }
     public Inventory Inventory;
     public Shop Shop;
     public Board Board;
-    public bool IsBusy { get; private set; } = false;
+    public Text LevelText;
+    public Image HealthImage;
+    public Material[] LevelsMaterials;
 
+    public int PlayerIndex { get; set; }
+    private Cell _currentCell;
+    public Cell CurrentCell 
+    { 
+        get => _currentCell;
+        set
+        {
+            if (_currentCell?.Figure == this)
+            {
+                _currentCell.Figure = null;
+            }
+            _currentCell = value;
+        }
+    }
+    public bool IsBusy { get; private set; } = false;
     public virtual int Health { get; set; }
     public virtual int Damage => throw new NotImplementedException();
     public virtual int Speed => throw new NotImplementedException();
@@ -20,6 +37,41 @@ public abstract class FigureBase : MonoBehaviour
 
     private Queue<Func<IEnumerator>> ActionQueue = new Queue<Func<IEnumerator>>();
     private Action InterruptActionCallBack = null;
+
+    private int _level = 1;
+    public int Level
+    {
+        get => _level;
+        set
+        {
+            if (value < 1)
+            {
+                _level = 1;
+            }
+            else
+            {
+                _level = value;
+            }
+
+            ProcessLevelChanged();
+        }
+    }
+    private Material GetMaterialForLevel(int level)
+    {
+        if (level < 1 || level > LevelsMaterials.Length)
+        {
+            return LevelsMaterials[0];
+        }
+        else
+        {
+            return LevelsMaterials[level - 1];
+        }
+    }
+    private void ProcessLevelChanged()
+    {
+        transform.Find("Mesh").GetComponent<MeshRenderer>().material = GetMaterialForLevel(Level);
+        LevelText.text = Level.ToString();
+    }
 
     public virtual void RegisterAttack(FigureBase attacker, int damage, Action deathCallback = null)
     {
@@ -36,11 +88,7 @@ public abstract class FigureBase : MonoBehaviour
     {
         throw new NotImplementedException();
     }
-    public virtual IEnumerator Move(Vector3 targetPosition)
-    {
-        throw new NotImplementedException();
-    }
-    public virtual IEnumerator Hit(Vector3 targetPosition)
+    public virtual IEnumerator Move(Cell targetPosition)
     {
         throw new NotImplementedException();
     }
@@ -65,7 +113,48 @@ public abstract class FigureBase : MonoBehaviour
     }
     protected virtual void ProcessCreateNextStep()
     {
-        throw new NotImplementedException();
+        var nearestFigureCell = Board.FindNearestCellWithFigure((int)CurrentCell.Coordinates.x, (int)CurrentCell.Coordinates.y);
+
+        if (nearestFigureCell != null) // There is an enemy figure on the board
+        {
+            if (Math.Abs(nearestFigureCell.Coordinates.x - CurrentCell.Coordinates.x) <= 1 &&
+                Math.Abs(nearestFigureCell.Coordinates.y - CurrentCell.Coordinates.y) <= 1)
+            {
+                ActionQueue.Enqueue(() => Attack(nearestFigureCell.Figure));
+            }
+            else
+            {
+                // Move to nearest figure
+
+                var nextx = CurrentCell.Coordinates.x;
+                var nexty = CurrentCell.Coordinates.y;
+
+                if (Math.Abs(nearestFigureCell.Coordinates.x - CurrentCell.Coordinates.x) < Math.Abs(nearestFigureCell.Coordinates.y - CurrentCell.Coordinates.y))
+                {
+                    if (nearestFigureCell.Coordinates.x > CurrentCell.Coordinates.x)
+                    {
+                        nextx++;
+                    }
+                    else if (nearestFigureCell.Coordinates.x < CurrentCell.Coordinates.x)
+                    {
+                        nextx--;
+                    }
+                }
+                else
+                {
+                    if (nearestFigureCell.Coordinates.y > CurrentCell.Coordinates.y)
+                    {
+                        nexty++;
+                    }
+                    else if (nearestFigureCell.Coordinates.y < CurrentCell.Coordinates.y)
+                    {
+                        nexty--;
+                    }
+                
+                }
+                ActionQueue.Enqueue(() => Move(Board.Cells[(int)nextx, (int)nexty]));
+            }
+        }
     }
     public void StartAction(Func<IEnumerator> action)
     {

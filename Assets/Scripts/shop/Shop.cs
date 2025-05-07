@@ -11,16 +11,24 @@ public class ShopItemData
     public int UpgradePrice;
     public int Level = 1;
 
-    public ShopItemData(string name, Sprite icon, int price, GameObject prefab)
-    {
-        Name = name;
-        Icon = icon;
-        Price = price;
-        Prefab = prefab;
-    }
     public ShopItemData Copy()
     {
-        return new ShopItemData(Name, Icon, Price, Prefab);
+        return new ShopItemData
+        {
+            Name = Name,
+            Icon = Icon,
+            Price = Price,
+            Prefab = Prefab,
+            UpgradePrice = UpgradePrice,
+            Level = Level
+        };
+    }
+    public GameObject CreateInstance(Transform transform)
+    {
+        var f = GameObject.Instantiate(Prefab, transform.position, Quaternion.identity);
+        f.transform.SetParent(transform);
+        f.GetComponent<FigureBase>().Level = Level;
+        return f;
     }
     public void Upgrade()
     {

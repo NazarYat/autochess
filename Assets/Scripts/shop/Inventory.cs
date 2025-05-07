@@ -67,6 +67,7 @@ public class Inventory : MonoBehaviour
     }
     public void AddItem(ShopItemData figure)
     {
+        figure = figure.Copy();
         if (Money - figure.Price < 0) return;
 
         Figures.Add(figure);
@@ -92,6 +93,7 @@ public class Inventory : MonoBehaviour
     {
         if (figure == null) return;
         var figures = Figures.Where(f => f.Name == figure.Name && f.Level == figure.Level);
+        UpdateView();
 
         if (figures.Count() == 0) return;
 
@@ -125,7 +127,18 @@ public class Inventory : MonoBehaviour
     private void UpdateView()
     {
         var col = 0;
-        foreach (var g in Figures.GroupBy(f => (f.Name, f.UpgradePrice)))
+
+        var groups = Figures.GroupBy(f => (f.Name, f.Level));
+
+        var itemsToDelete = new List<KeyValuePair<(string, int), GameObject>>();
+
+        foreach (var i in InventoryRepresentativeElements)
+        {
+            Destroy(i.Value);
+        }
+        InventoryRepresentativeElements.Clear();
+
+        foreach (var g in groups)
         {
             var count = g.Count();
 
@@ -134,58 +147,47 @@ public class Inventory : MonoBehaviour
                 count -= usedCount;
             }
 
+            if (count <= 0) continue;
 
-            if (InventoryRepresentativeElements.TryGetValue(g.Key, out var go))
+            var item = Instantiate(itemPrefab, transform);
+            InventoryRepresentativeElements.Add(g.Key, item);
+
+            item.transform.Find("CountText").GetComponent<Text>().text = count.ToString();
+            item.transform.Find("NameText").GetComponent<Text>().text = g.Key.Item1;
+            item.transform.Find("PriceText").GetComponent<Text>().text = "$" + g.First().UpgradePrice.ToString();
+            item.transform.Find("UpgradeButton").GetComponent<Button>().onClick.AddListener(() =>
             {
-                if (count <= 0)
-                {
-                    Destroy(go);
-                    InventoryRepresentativeElements.Remove(g.Key);
-                    continue;
-                }
-                
-                go.transform.Find("CountText").GetComponent<Text>().text = count.ToString();
-            }
-            else
+                if (Money - g.FirstOrDefault().UpgradePrice < 0) return;
+                RemoveMoney(g.FirstOrDefault().UpgradePrice);
+                g.FirstOrDefault()?.Upgrade();
+                UpdateView();
+            });
+
+            item.transform.Find("PlaceButton").gameObject.SetActive(CanPalceFigures);
+            item.transform.Find("UpgradeButton").gameObject.SetActive(CanUpgradeFigures);
+            item.transform.Find("PriceText").gameObject.SetActive(CanUpgradeFigures);
+            item.transform.Find("PlaceButton").GetComponent<Button>().onClick.AddListener(() =>
             {
-                if (count <= 0) continue;
-                
-                var item = Instantiate(itemPrefab, transform);
-                InventoryRepresentativeElements.Add(g.Key, item);
-
-                item.transform.Find("NameText").GetComponent<Text>().text = g.Key.Item1;
-                item.transform.Find("PriceText").GetComponent<Text>().text = "$" + g.First().UpgradePrice.ToString();
-                item.transform.Find("UpgradeButton").GetComponent<Button>().onClick.AddListener(() =>
-                {
-                    if (Money - g.FirstOrDefault().UpgradePrice < 0) return;
-                    RemoveMoney(g.FirstOrDefault().UpgradePrice);
-                    g.FirstOrDefault()?.Upgrade();
-                    UpdateView();
-                });
-
-                item.transform.Find("PlaceButton").gameObject.SetActive(CanPalceFigures);
-                item.transform.Find("UpgradeButton").gameObject.SetActive(CanUpgradeFigures);
-                item.transform.Find("PriceText").gameObject.SetActive(CanUpgradeFigures);
-                item.transform.Find("PlaceButton").GetComponent<Button>().onClick.AddListener(() =>
-                {
-                    SelectedFigure = g.FirstOrDefault();
-                });
+                SelectedFigure = g.FirstOrDefault();
+            });
 
 
-                var trans = item.GetComponent<RectTransform>();
+            var trans = item.GetComponent<RectTransform>();
 
-                float posX = trans.localPosition.x + ItemOffset.x + (col * ItemSpacing.x);
-                float posY = trans.localPosition.y + ItemOffset.y;
+            float posX = trans.localPosition.x + ItemOffset.x + (col * ItemSpacing.x);
+            float posY = trans.localPosition.y + ItemOffset.y;
 
-                trans.localPosition = new Vector3(posX, posY, 0);
-
-            }
+            trans.localPosition = new Vector3(posX, posY, 0);
             col++;
         }
+        
     }
     // Update is called once per frame
     void Update()
     {
-        
+        if (Input.GetMouseButtonDown(1))
+        {
+            SelectedFigure = null;
+        }
     }
 }
