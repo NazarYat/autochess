@@ -65,6 +65,7 @@ public class Cell : MonoBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             PlaceFigure(Inventory.SelectedFigure.CreateInstance(transform));
+            Inventory.UseFigure(Inventory.SelectedFigure);
         }
     }
     
@@ -85,10 +86,14 @@ public class Cell : MonoBehaviour
         if (Figure != null) return false;
         f.transform.SetParent(transform);
 
-        Inventory.UseFigure(Inventory.SelectedFigure);
 
         Figure = f.GetComponent<FigureBase>();
         Figure.CurrentCell = this;
+        if (!Board.Figures.Contains(Figure))
+        {
+            Board.Figures.Add(Figure);
+        }
+        Figure.Board = Board;
 
         return true;
     }

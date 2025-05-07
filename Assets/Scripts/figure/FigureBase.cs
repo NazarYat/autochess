@@ -111,9 +111,47 @@ public abstract class FigureBase : MonoBehaviour
         }
         
     }
+    public Cell FindNearestCellWithFigure(int x, int y)
+    {
+        bool[,] visited = new bool[Board.SizeX, Board.SizeY];
+        Queue<(int x, int y)> queue = new Queue<(int x, int y)>();
+
+        queue.Enqueue((x, y));
+        visited[x, y] = true;
+
+        while (queue.Count > 0)
+        {
+            var (cx, cy) = queue.Dequeue();
+            Cell current = Board.Cells[cx, cy];
+
+            if (current.Figure != null && current.Figure.PlayerIndex != PlayerIndex)
+                return current;
+
+            // Check neighbors (8 directions)
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    int nx = cx + dx;
+                    int ny = cy + dy;
+
+                    if (dx == 0 && dy == 0)
+                        continue;
+
+                    if (nx >= 0 && nx < Board.SizeX && ny >= 0 && ny < Board.SizeY && !visited[nx, ny])
+                    {
+                        visited[nx, ny] = true;
+                        queue.Enqueue((nx, ny));
+                    }
+                }
+            }
+        }
+
+        return null; // No cell with a figure found
+    }
     protected virtual void ProcessCreateNextStep()
     {
-        var nearestFigureCell = Board.FindNearestCellWithFigure((int)CurrentCell.Coordinates.x, (int)CurrentCell.Coordinates.y);
+        var nearestFigureCell = FindNearestCellWithFigure((int)CurrentCell.Coordinates.x, (int)CurrentCell.Coordinates.y);
 
         if (nearestFigureCell != null) // There is an enemy figure on the board
         {

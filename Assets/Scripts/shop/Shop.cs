@@ -23,11 +23,12 @@ public class ShopItemData
             Level = Level
         };
     }
-    public GameObject CreateInstance(Transform transform)
+    public GameObject CreateInstance(Transform transform, int playerIndex = 1)
     {
         var f = GameObject.Instantiate(Prefab, transform.position, Quaternion.identity);
         f.transform.SetParent(transform);
         f.GetComponent<FigureBase>().Level = Level;
+        f.GetComponent<FigureBase>().PlayerIndex = playerIndex;
         return f;
     }
     public void Upgrade()

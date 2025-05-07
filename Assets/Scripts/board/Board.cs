@@ -97,44 +97,7 @@ public class Board : MonoBehaviour
 
         return cells.ToArray();
     }
-    public Cell FindNearestCellWithFigure(int x, int y)
-    {
-        bool[,] visited = new bool[SizeX, SizeY];
-        Queue<(int x, int y)> queue = new Queue<(int x, int y)>();
-
-        queue.Enqueue((x, y));
-        visited[x, y] = true;
-
-        while (queue.Count > 0)
-        {
-            var (cx, cy) = queue.Dequeue();
-            Cell current = Cells[cx, cy];
-
-            if (current.Figure != null && current.Figure.PlayerIndex != 1)
-                return current;
-
-            // Check neighbors (8 directions)
-            for (int dx = -1; dx <= 1; dx++)
-            {
-                for (int dy = -1; dy <= 1; dy++)
-                {
-                    int nx = cx + dx;
-                    int ny = cy + dy;
-
-                    if (dx == 0 && dy == 0)
-                        continue;
-
-                    if (nx >= 0 && nx < SizeX && ny >= 0 && ny < SizeY && !visited[nx, ny])
-                    {
-                        visited[nx, ny] = true;
-                        queue.Enqueue((nx, ny));
-                    }
-                }
-            }
-        }
-
-        return null; // No cell with a figure found
-    }
+    
     public void StartGame()
     {
         RoundNumber++;
@@ -159,6 +122,7 @@ public class Board : MonoBehaviour
         Inventory.CanPalceFigures = true;
         ShopGameObject.SetActive(false);
         StartCoroutine(Tick());
+        StartCoroutine(Bot());
         StartCoroutine(Timer(180, () =>
         {
             ProcessGameEnd();
@@ -213,7 +177,40 @@ public class Board : MonoBehaviour
         StopAllCoroutines();
         StartGame();
     }
+    public IEnumerator Bot()
+    {
+        while (IsGameActive)
+        {
+            if (Figures.Where(f => f.PlayerIndex == 0).Count() < Figures.Where(f => f.PlayerIndex != 0).Count())
+            {
+                Debug.Log("Creating enemy");
+                var x = UnityEngine.Random.Range(0, SizeX);
+                var y = SizeY - UnityEngine.Random.Range(0, 2) - 1;
 
+                Debug.Log(y.ToString());
+
+                var cell = Cells[x, y];
+
+                if (cell.Figure == null && Inventory.Figures.Count() > 0)
+                {
+                    var figureIndex = 0;
+                    do
+                    {
+                        figureIndex = UnityEngine.Random.Range(0, Inventory.Figures.Count() - 1);
+                    }
+                    while (cell.PlaceFigure(Inventory.Figures[figureIndex].CreateInstance(cell.transform, 0)));
+                }
+            }
+            else
+            {
+                Debug.Log($"my: {Figures.Where(f => f.PlayerIndex != 0).Count()}, enemy: {Figures.Where(f => f.PlayerIndex == 0).Count()}");
+            }
+
+            yield return new WaitForSeconds(UnityEngine.Random.Range(1, 1));
+        }
+
+        yield break;
+    }
     // Start is called before the first frame update
     void Start()
     {
