@@ -17,6 +17,12 @@ public class Cell : MonoBehaviour
             if (_figure == value && Figure == null) return;
             
             _figure = value;
+
+            if (_figure != null)
+            {
+                _figure.transform.SetParent(transform);
+                _figure.CurrentCell = this;
+            }
             UpdateView();
         }
     }
@@ -41,6 +47,12 @@ public class Cell : MonoBehaviour
             if (_isSpawnPointActive == value) return;
 
             _isSpawnPointActive = value;
+
+            if (!value)
+            {
+                DestroyPreviewFigure();
+            }
+
             UpdateView();
         }
     }
@@ -64,6 +76,8 @@ public class Cell : MonoBehaviour
         
         if (Input.GetMouseButtonDown(0))
         {
+            DestroyPreviewFigure();
+
             PlaceFigure(Inventory.SelectedFigure.CreateInstance(transform));
             Inventory.UseFigure(Inventory.SelectedFigure);
         }
@@ -85,15 +99,13 @@ public class Cell : MonoBehaviour
     {
         if (Figure != null) return false;
         f.transform.SetParent(transform);
-
-
         Figure = f.GetComponent<FigureBase>();
         Figure.CurrentCell = this;
         if (!Board.Figures.Contains(Figure))
         {
             Board.Figures.Add(Figure);
+            Figure.Board = Board;
         }
-        Figure.Board = Board;
 
         return true;
     }

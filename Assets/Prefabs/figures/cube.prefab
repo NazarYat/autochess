@@ -50,11 +50,16 @@ MonoBehaviour:
   Shop: {fileID: 0}
   Board: {fileID: 0}
   LevelText: {fileID: 7748152061197245878}
-  HealthImage: {fileID: 5403083134913841339}
   LevelsMaterials:
   - {fileID: 2100000, guid: 5b2248eb4530dc045ab665c3dc835986, type: 2}
   - {fileID: 2100000, guid: f18479c50cf4c88488602a566570e1af, type: 2}
   - {fileID: 2100000, guid: 10559540213e6c6448c67cff1b9cfd63, type: 2}
+  HealthBar: {fileID: 6102638078117718686}
+  Damage: 1
+  Speed: 1
+  AttackTime: 0.5
+  AttackRange: 1
+  MaxHealth: 75
 --- !u!1 &9054963657571095409
 GameObject:
   m_ObjectHideFlags: 0
@@ -235,15 +240,15 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: adcc7798149d8af4faa93a29aaefbfd7, type: 3}
---- !u!114 &5403083134913841339 stripped
+--- !u!114 &6102638078117718686 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7572035920318347042, guid: adcc7798149d8af4faa93a29aaefbfd7, type: 3}
+  m_CorrespondingSourceObject: {fileID: 8601366277402498311, guid: adcc7798149d8af4faa93a29aaefbfd7, type: 3}
   m_PrefabInstance: {fileID: 2589250863434514329}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: de95677fd8656874d9f04ce5dedce555, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!224 &7116496988065798102 stripped

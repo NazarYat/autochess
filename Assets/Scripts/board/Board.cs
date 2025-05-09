@@ -110,7 +110,7 @@ public class Board : MonoBehaviour
         ShopGameObject.SetActive(true);
         Inventory.CanUpgradeFigures = true;
 
-        StartCoroutine(Timer(10, () =>
+        StartCoroutine(Timer(3, () =>
         {
             ShopGameObject.SetActive(false);
             StartBattlePeriod();
@@ -149,7 +149,6 @@ public class Board : MonoBehaviour
         {
             foreach (var figure in Figures)
             {
-                Debug.Log("Start figure action");
                 figure.Action(ActionDurationMilliseconds);
             }
             
@@ -179,31 +178,25 @@ public class Board : MonoBehaviour
     }
     public IEnumerator Bot()
     {
+        var playerFigures = new List<ShopItemData>(Inventory.Figures);
+
         while (IsGameActive)
         {
-            if (Figures.Where(f => f.PlayerIndex == 0).Count() < Figures.Where(f => f.PlayerIndex != 0).Count())
+            var x = UnityEngine.Random.Range(0, SizeX);
+            var y = SizeY - UnityEngine.Random.Range(0, 2) - 1;
+
+            var cell = Cells[x, y];
+
+            if (cell.Figure == null && playerFigures.Count() > 0)
             {
-                Debug.Log("Creating enemy");
-                var x = UnityEngine.Random.Range(0, SizeX);
-                var y = SizeY - UnityEngine.Random.Range(0, 2) - 1;
+                var figureIndex = 0;
+                
+                figureIndex = UnityEngine.Random.Range(0, Inventory.Figures.Count() - 1);
 
-                Debug.Log(y.ToString());
-
-                var cell = Cells[x, y];
-
-                if (cell.Figure == null && Inventory.Figures.Count() > 0)
+                if (cell.PlaceFigure(playerFigures[figureIndex].CreateInstance(cell.transform, 0)))
                 {
-                    var figureIndex = 0;
-                    do
-                    {
-                        figureIndex = UnityEngine.Random.Range(0, Inventory.Figures.Count() - 1);
-                    }
-                    while (cell.PlaceFigure(Inventory.Figures[figureIndex].CreateInstance(cell.transform, 0)));
+                    playerFigures.Remove(playerFigures[figureIndex]);
                 }
-            }
-            else
-            {
-                Debug.Log($"my: {Figures.Where(f => f.PlayerIndex != 0).Count()}, enemy: {Figures.Where(f => f.PlayerIndex == 0).Count()}");
             }
 
             yield return new WaitForSeconds(UnityEngine.Random.Range(1, 1));

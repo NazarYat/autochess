@@ -91,7 +91,6 @@ public class Shop : MonoBehaviour
 
     void OnBuyButtonClicked(ShopItemData item)
     {
-        Debug.Log($"Buying item: {item.Name} for ${item.Price}");
         Inventory.AddItem(item);
     }
 }

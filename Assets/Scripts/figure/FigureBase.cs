@@ -11,8 +11,14 @@ public abstract class FigureBase : MonoBehaviour
     public Shop Shop;
     public Board Board;
     public Text LevelText;
-    public Image HealthImage;
     public Material[] LevelsMaterials;
+    public PercentBar HealthBar;
+
+    public float Damage;
+    public float Speed;
+    public float AttackTime;
+    public int AttackRange;
+    public float MaxHealth;
 
     public int PlayerIndex { get; set; }
     private Cell _currentCell;
@@ -21,6 +27,8 @@ public abstract class FigureBase : MonoBehaviour
         get => _currentCell;
         set
         {
+            if (value == _currentCell) return;
+
             if (_currentCell?.Figure == this)
             {
                 _currentCell.Figure = null;
@@ -29,12 +37,21 @@ public abstract class FigureBase : MonoBehaviour
         }
     }
     public bool IsBusy { get; private set; } = false;
-    public virtual int Health { get; set; }
-    public virtual int Damage => throw new NotImplementedException();
-    public virtual int Speed => throw new NotImplementedException();
-    public virtual int AttackSpeed => throw new NotImplementedException();
-    public virtual int AttackRange => throw new NotImplementedException();
+    private float _health;
+    public virtual float Health 
+    { 
+        get => _health;
+        set
+        {
+            if (_health == value) return;
 
+            _health = value;
+
+            HealthBar.SetValue(Health / MaxHealth);
+
+            Debug.Log($"Health: {Health / MaxHealth}");
+        }
+    }
     private Queue<Func<IEnumerator>> ActionQueue = new Queue<Func<IEnumerator>>();
     private Action InterruptActionCallBack = null;
 
@@ -73,7 +90,7 @@ public abstract class FigureBase : MonoBehaviour
         LevelText.text = Level.ToString();
     }
 
-    public virtual void RegisterAttack(FigureBase attacker, int damage, Action deathCallback = null)
+    public virtual void RegisterAttack(FigureBase attacker, float damage, Action deathCallback = null)
     {
         Health -= damage;
 
@@ -84,7 +101,7 @@ public abstract class FigureBase : MonoBehaviour
             StartActionInstant(Die);
         }
     }
-    public virtual IEnumerator Attack(FigureBase target)
+    public virtual IEnumerator Attack()
     {
         throw new NotImplementedException();
     }
@@ -98,7 +115,7 @@ public abstract class FigureBase : MonoBehaviour
     }
     public void Action(int duration)
     {
-        if (IsBusy) { return; }
+        if (IsBusy) return;
 
         if (ActionQueue.Count == 0)
         {
@@ -111,94 +128,88 @@ public abstract class FigureBase : MonoBehaviour
         }
         
     }
-    public Cell FindNearestCellWithFigure(int x, int y)
+    public Stack<Cell> GetPathToEnemy(int startX, int startY)
     {
         bool[,] visited = new bool[Board.SizeX, Board.SizeY];
         Queue<(int x, int y)> queue = new Queue<(int x, int y)>();
+        Dictionary<(int x, int y), (int x, int y)> parents = new Dictionary<(int x, int y), (int x, int y)>();
 
-        queue.Enqueue((x, y));
-        visited[x, y] = true;
+        visited[startX, startY] = true;
+        queue.Enqueue((startX, startY));
+
+        // Enforce stable direction order: Up, Left, Right, Down
+        (int dx, int dy)[] directions = new (int, int)[]
+        {
+        (0, -1), // Up
+        (-1, 0), // Left
+        (1, 0),  // Right
+        (0, 1)   // Down
+        };
 
         while (queue.Count > 0)
         {
             var (cx, cy) = queue.Dequeue();
-            Cell current = Board.Cells[cx, cy];
+            var current = Board.Cells[cx, cy];
 
+            // Found an enemy
             if (current.Figure != null && current.Figure.PlayerIndex != PlayerIndex)
-                return current;
-
-            // Check neighbors (8 directions)
-            for (int dx = -1; dx <= 1; dx++)
             {
-                for (int dy = -1; dy <= 1; dy++)
+                var path = new Stack<Cell>();
+                var node = (cx, cy);
+
+                while (node != (startX, startY))
                 {
-                    int nx = cx + dx;
-                    int ny = cy + dy;
+                    path.Push(Board.Cells[node.cx, node.cy]);
+                    node = parents[node];
+                }
 
-                    if (dx == 0 && dy == 0)
-                        continue;
+                return path;
+            }
 
-                    if (nx >= 0 && nx < Board.SizeX && ny >= 0 && ny < Board.SizeY && !visited[nx, ny])
-                    {
-                        visited[nx, ny] = true;
-                        queue.Enqueue((nx, ny));
-                    }
+            // Visit neighbors in consistent order
+            foreach (var (dx, dy) in directions)
+            {
+                int nx = cx + dx;
+                int ny = cy + dy;
+
+                if (nx < 0 || ny < 0 || nx >= Board.SizeX || ny >= Board.SizeY)
+                    continue;
+
+                if (visited[nx, ny])
+                    continue;
+
+                var neighbor = Board.Cells[nx, ny];
+
+                if (neighbor.Figure == null || neighbor.Figure.PlayerIndex != PlayerIndex)
+                {
+                    visited[nx, ny] = true;
+                    parents[(nx, ny)] = (cx, cy);
+                    queue.Enqueue((nx, ny));
                 }
             }
         }
 
-        return null; // No cell with a figure found
+        return null; // No enemy found
     }
     protected virtual void ProcessCreateNextStep()
     {
-        var nearestFigureCell = FindNearestCellWithFigure((int)CurrentCell.Coordinates.x, (int)CurrentCell.Coordinates.y);
+        var nearestFigurePath = GetPathToEnemy((int)CurrentCell.Coordinates.x, (int)CurrentCell.Coordinates.y);
 
-        if (nearestFigureCell != null) // There is an enemy figure on the board
+        if (nearestFigurePath == null) return;
+
+        if (nearestFigurePath?.Count > AttackRange)
         {
-            if (Math.Abs(nearestFigureCell.Coordinates.x - CurrentCell.Coordinates.x) <= 1 &&
-                Math.Abs(nearestFigureCell.Coordinates.y - CurrentCell.Coordinates.y) <= 1)
-            {
-                ActionQueue.Enqueue(() => Attack(nearestFigureCell.Figure));
-            }
-            else
-            {
-                // Move to nearest figure
-
-                var nextx = CurrentCell.Coordinates.x;
-                var nexty = CurrentCell.Coordinates.y;
-
-                if (Math.Abs(nearestFigureCell.Coordinates.x - CurrentCell.Coordinates.x) < Math.Abs(nearestFigureCell.Coordinates.y - CurrentCell.Coordinates.y))
-                {
-                    if (nearestFigureCell.Coordinates.x > CurrentCell.Coordinates.x)
-                    {
-                        nextx++;
-                    }
-                    else if (nearestFigureCell.Coordinates.x < CurrentCell.Coordinates.x)
-                    {
-                        nextx--;
-                    }
-                }
-                else
-                {
-                    if (nearestFigureCell.Coordinates.y > CurrentCell.Coordinates.y)
-                    {
-                        nexty++;
-                    }
-                    else if (nearestFigureCell.Coordinates.y < CurrentCell.Coordinates.y)
-                    {
-                        nexty--;
-                    }
-                
-                }
-                ActionQueue.Enqueue(() => Move(Board.Cells[(int)nextx, (int)nexty]));
-            }
+            ActionQueue.Enqueue(() => Move(nearestFigurePath.Pop()));
+        }
+        else
+        {
+            ActionQueue.Enqueue(() => Attack());
         }
     }
     public void StartAction(Func<IEnumerator> action)
     {
-        StartCoroutineInternal(action);
-
         IsBusy = true;
+        StartCoroutineInternal(action);
     }
     public void StartActionInstant(Func<IEnumerator> action)
     {
@@ -224,9 +235,12 @@ public abstract class FigureBase : MonoBehaviour
 
             if (stop)
             {
+                IsBusy = false;
                 yield break;
             }
         }
+        IsBusy = false;
+
     }
     public void StartCoroutineInternal(Func<IEnumerator> action)
     {
@@ -235,7 +249,7 @@ public abstract class FigureBase : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        Health = MaxHealth;
     }
 
     // Update is called once per frame
