@@ -57,6 +57,12 @@ public class Inventory : MonoBehaviour
     public Dictionary<(string, int), GameObject> InventoryRepresentativeElements { get; private set; } = new Dictionary<(string, int), GameObject>();
     public Dictionary<(string, int), int> UsedFigures { get; private set; } = new Dictionary<(string, int), int>();
 
+    public List<ShopItemData> UnusedFigures => Figures
+        .GroupBy(f => (f.Name, f.Level))
+        .Select(g => g.FirstOrDefault())
+        .Where(f => !UsedFigures.ContainsKey((f.Name, f.Level)) || UsedFigures[(f.Name, f.Level)] < Figures.Count(f2 => f2.Name == f.Name && f2.Level == f.Level))
+        .ToList();
+
     public void AddMoney(int amount)
     {
         Money += amount;
@@ -124,6 +130,11 @@ public class Inventory : MonoBehaviour
     {
         UpdateView();
     }
+    public void Reset()
+    {
+        UsedFigures.Clear();
+        UpdateView();
+    }
     private void UpdateView()
     {
         var col = 0;
@@ -153,6 +164,7 @@ public class Inventory : MonoBehaviour
             InventoryRepresentativeElements.Add(g.Key, item);
 
             item.transform.Find("CountText").GetComponent<Text>().text = count.ToString();
+            item.transform.Find("LevelText").GetComponent<Text>().text = g.Key.Item2.ToString();
             item.transform.Find("NameText").GetComponent<Text>().text = g.Key.Item1;
             item.transform.Find("PriceText").GetComponent<Text>().text = "$" + g.First().UpgradePrice.ToString();
             item.transform.Find("UpgradeButton").GetComponent<Button>().onClick.AddListener(() =>

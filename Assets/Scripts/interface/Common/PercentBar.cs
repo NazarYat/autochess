@@ -14,12 +14,19 @@ public class PercentBar : MonoBehaviour
 
     [Range(0f, 1f)]
     public float value = 1.0f;
+    public float Value
+    {
+        get { return value; }
+        set
+        {
+            this.value = Mathf.Clamp01(value);
+            UpdateBar();
+        }
+    }
 
     [Header("Settings")]
     public Orientation orientation = Orientation.Horizontal;
     public bool updateInRuntime = true;
-
-    private Vector2 originalSize;
 
     void Start()
     {
@@ -29,9 +36,6 @@ public class PercentBar : MonoBehaviour
             enabled = false;
             return;
         }
-
-        // Store the original size
-        originalSize = targetImageRect.sizeDelta;
 
         // Initial update
         UpdateBar();
@@ -45,12 +49,6 @@ public class PercentBar : MonoBehaviour
         }
     }
 
-    public void SetValue(float value)
-    {
-        value = Mathf.Clamp01(value);
-        UpdateBar();
-    }
-
     public void SetOrientation(Orientation newOrientation)
     {
         orientation = newOrientation;
@@ -59,17 +57,21 @@ public class PercentBar : MonoBehaviour
 
     private void UpdateBar()
     {
-        Vector2 newSize = originalSize;
+        if (targetImageRect == null) return;
+        
+        Vector2 newSize = new Vector2();
 
         if (orientation == Orientation.Horizontal)
         {
-            newSize.x = originalSize.x * value;
+            newSize.x = value;
+            newSize.y = 1;
         }
         else
         {
-            newSize.y = originalSize.y * value;
+            newSize.x = 1;
+            newSize.y = value;
         }
 
-        targetImageRect.sizeDelta = newSize;
+        targetImageRect.anchorMax = newSize;
     }
 }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Linq;
 
 [System.Serializable]
 public class ShopItemData
@@ -29,6 +30,7 @@ public class ShopItemData
         f.transform.SetParent(transform);
         f.GetComponent<FigureBase>().Level = Level;
         f.GetComponent<FigureBase>().PlayerIndex = playerIndex;
+        f.GetComponent<FigureBase>().FigureData = this;
         return f;
     }
     public void Upgrade()
@@ -56,6 +58,15 @@ public class Shop : MonoBehaviour
     void Start()
     {
         CreateShopItems();
+    }
+
+    public ShopItemData GetRandomItem(int maxPrice)
+    {
+        var allowerItems = ItemsForSale.Where(x => x.Price <= maxPrice).ToList();
+
+        if (!allowerItems.Any()) return null;
+
+        return allowerItems[UnityEngine.Random.Range(0, allowerItems.Count())];
     }
 
     void CreateShopItems()

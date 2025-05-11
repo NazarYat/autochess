@@ -69,13 +69,16 @@ public class Board : MonoBehaviour
             }
         }
     }
-    public Cell[] GetCellsInTouch(int x, int y)
+    private int[] PlayersScore = new int[2] { 0, 0 };
+    public Text[] PlayerScoreTexts;
+
+    public Cell[] GetCellsInTouch(int x, int y, int n = 1)
     {
         List<Cell> cells = new List<Cell>();
 
-        for (int dx = -1; dx <= 1; dx++)
+        for (int dx = -n; dx <= n; dx++)
         {
-            for (int dy = -1; dy <= 1; dy++)
+            for (int dy = -n; dy <= n; dy++)
             {
                 // Skip the center cell itself
                 if (dx == 0 && dy == 0)
@@ -101,16 +104,20 @@ public class Board : MonoBehaviour
     public void StartGame()
     {
         RoundNumber++;
-        Inventory.AddMoney(InitialBalane);
+        if (RoundNumber == 1)
+        {
+            Inventory.AddMoney(InitialBalane);
+        }
         IsGameActive = true;
         StartShopPeriod();
     }
     public void StartShopPeriod()
     {
         ShopGameObject.SetActive(true);
+        Inventory.Reset();
         Inventory.CanUpgradeFigures = true;
 
-        StartCoroutine(Timer(3, () =>
+        StartCoroutine(Timer(15, () =>
         {
             ShopGameObject.SetActive(false);
             StartBattlePeriod();
@@ -120,9 +127,35 @@ public class Board : MonoBehaviour
     {
         Inventory.CanUpgradeFigures = false;
         Inventory.CanPalceFigures = true;
+
+        foreach (var figure in Figures)
+        {
+            Destroy(figure.gameObject);
+        }
+
+        Figures.Clear();
+
         ShopGameObject.SetActive(false);
+
+        if (Inventory.Figures.Count() == 0)
+        {
+            while (true)
+            {
+                var item = ShopGameObject.GetComponent<Shop>().GetRandomItem(Inventory.Money);
+
+                if (item == null)
+                {
+                    break;
+                }
+
+                Inventory.AddItem(item);
+            }
+        }
+
+
         StartCoroutine(Tick());
         StartCoroutine(Bot());
+
         StartCoroutine(Timer(180, () =>
         {
             ProcessGameEnd();
@@ -136,7 +169,7 @@ public class Board : MonoBehaviour
             yield return new WaitForSeconds(1);
             seconds--;
 
-            TimerText.text = seconds.ToString();
+            TimerText.text = $"{(seconds / 60).ToString()}:{(seconds % 60).ToString()}";
         }
         timeoutCallBack?.Invoke();
 
@@ -154,27 +187,52 @@ public class Board : MonoBehaviour
             
             yield return new WaitForSeconds(ActionDurationMilliseconds / 1000.0f);
 
-            //if (Figures.GroupBy(figure => figure.PlayerIndex).Count() <= 0)
-            //{
-            //    ProcessGameEnd();
-            //    yield break;
-            //}
+            if (ShouldStopGame())
+            {
+                yield return new WaitForSeconds(1);
+                ProcessGameEnd();
+                yield break;
+            }
         }
+        yield return new WaitForSeconds(1);
         ProcessGameEnd();
         yield break;
     }
 
+    private bool ShouldStopGame()
+    {
+        return Figures.GroupBy(f => f.PlayerIndex).Count() <= 1 && Inventory.UnusedFigures.Count() == 0;
+    }
+
     private void ProcessGameEnd()
     {
-        Debug.Log("Game Over");
+        Debug.Log("GameOver");
         IsGameActive = false;
         Inventory.CanPalceFigures = false;
-        foreach (var figure in Figures)
-        {
-            Destroy(figure.gameObject);
-        }
+
+        // process winner here
+
+        var winnerIndex = Figures.GroupBy(x => x.PlayerIndex)
+            .OrderByDescending(x => x.Sum(y => y.Health))
+            .FirstOrDefault().Key;
+
+        PlayersScore[winnerIndex] += 1;
+
+        PlayerScoreTexts[winnerIndex].text = PlayersScore[winnerIndex].ToString();
+
+        
         StopAllCoroutines();
         StartGame();
+    }
+    public void RegisterFigureDeath(FigureBase figure)
+    {
+        Figures.Remove(figure);
+        if (figure.PlayerIndex == 0)
+        {
+            Debug.Log($"Earned money: {figure.FigureData.UpgradePrice}");
+            Inventory.AddMoney(figure.FigureData.UpgradePrice);
+        }
+        Destroy(figure.gameObject);
     }
     public IEnumerator Bot()
     {
@@ -191,7 +249,7 @@ public class Board : MonoBehaviour
             {
                 var figureIndex = 0;
                 
-                figureIndex = UnityEngine.Random.Range(0, Inventory.Figures.Count() - 1);
+                figureIndex = UnityEngine.Random.Range(0, playerFigures.Count());
 
                 if (cell.PlaceFigure(playerFigures[figureIndex].CreateInstance(cell.transform, 0)))
                 {

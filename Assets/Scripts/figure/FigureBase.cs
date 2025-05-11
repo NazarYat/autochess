@@ -12,15 +12,41 @@ public abstract class FigureBase : MonoBehaviour
     public Board Board;
     public Text LevelText;
     public Material[] LevelsMaterials;
+    public Material DamageMaterial;
+    public Material HealMaterial;
     public PercentBar HealthBar;
+    public Image[] Images;
 
     public float Damage;
     public float Speed;
     public float AttackTime;
+    public float SelfHealValue;
     public int AttackRange;
     public float MaxHealth;
 
-    public int PlayerIndex { get; set; }
+    protected float DamageLevelized => Damage + Damage * (Level / 5.0f);
+    protected float MaxHealthLevelized => MaxHealth + MaxHealth * (Level / 5.0f);
+    protected float SelfHealValueLevelized => SelfHealValue + SelfHealValue * (Level / 5.0f);
+
+    private int _playerIndex = -1;
+    public int PlayerIndex 
+    {
+        get => _playerIndex;
+        set
+        {
+            if (_playerIndex == value) return;
+
+            _playerIndex = value;
+
+            if (PlayerIndexColors != null && _playerIndex < PlayerIndexColors.Length)
+            {
+                foreach (var image in Images)
+                {
+                    image.color = PlayerIndexColors[PlayerIndex];
+                }
+            }
+        }
+    }
     private Cell _currentCell;
     public Cell CurrentCell 
     { 
@@ -47,13 +73,12 @@ public abstract class FigureBase : MonoBehaviour
 
             _health = value;
 
-            HealthBar.SetValue(Health / MaxHealth);
-
-            Debug.Log($"Health: {Health / MaxHealth}");
+            HealthBar.Value = Health / MaxHealthLevelized;
         }
     }
     private Queue<Func<IEnumerator>> ActionQueue = new Queue<Func<IEnumerator>>();
     private Action InterruptActionCallBack = null;
+    public Color[] PlayerIndexColors;
 
     private int _level = 1;
     public int Level
@@ -73,6 +98,7 @@ public abstract class FigureBase : MonoBehaviour
             ProcessLevelChanged();
         }
     }
+    public ShopItemData FigureData { get; set; }
     private Material GetMaterialForLevel(int level)
     {
         if (level < 1 || level > LevelsMaterials.Length)
@@ -94,12 +120,30 @@ public abstract class FigureBase : MonoBehaviour
     {
         Health -= damage;
 
-        if (Health <= 0)
+        if (Health < 0)
         {
             Health = 0;
             deathCallback?.Invoke();
             StartActionInstant(Die);
         }
+        else
+        {
+            StartCoroutine(TakeDamage());
+        }
+    }
+    public virtual void RegisterHeal(float damage)
+    {
+        Health += damage;
+
+        if (Health > MaxHealthLevelized)
+        {
+            Health = MaxHealthLevelized;
+        }
+        else
+        {
+            StartCoroutine(Heal());
+        }
+
     }
     public virtual IEnumerator Attack()
     {
@@ -107,11 +151,53 @@ public abstract class FigureBase : MonoBehaviour
     }
     public virtual IEnumerator Move(Cell targetPosition)
     {
-        throw new NotImplementedException();
+        targetPosition.Figure = this;
+
+        Vector3 targetCoordinates = targetPosition.transform.position;
+
+        while (Vector3.Distance(transform.position, targetCoordinates) > 0.01f)
+        {
+            Vector3 direction = (targetCoordinates - transform.position).normalized;
+            transform.position += direction * Speed * Time.deltaTime;
+
+            yield return null;
+        }
+
+        transform.position = targetCoordinates;
     }
     public virtual IEnumerator Die()
     {
-        throw new NotImplementedException();
+        yield return new WaitForSeconds(0.5f);
+        CurrentCell.Figure = null;
+        Board.RegisterFigureDeath(this);
+
+        Debug.Log($"Dead figure index: {PlayerIndex}");
+
+        StopAllCoroutines();
+
+        yield break;
+
+    }
+    public virtual IEnumerator Heal()
+    {
+        yield return new WaitForSeconds(UnityEngine.Random.Range(0, 2) / 10);
+        transform.Find("Mesh").GetComponent<MeshRenderer>().material = HealMaterial;
+
+        yield return new WaitForSeconds(0.5f);
+        ProcessLevelChanged();
+
+        yield break;
+
+    }
+    public virtual IEnumerator TakeDamage()
+    {
+        yield return new WaitForSeconds(UnityEngine.Random.Range(0, 2) / 10);
+        transform.Find("Mesh").GetComponent<MeshRenderer>().material = DamageMaterial;
+
+        yield return new WaitForSeconds(0.1f);
+        ProcessLevelChanged();
+
+        yield break;
     }
     public void Action(int duration)
     {
@@ -193,13 +279,17 @@ public abstract class FigureBase : MonoBehaviour
     }
     protected virtual void ProcessCreateNextStep()
     {
+        if (this == null || gameObject == null) return;
+
         var nearestFigurePath = GetPathToEnemy((int)CurrentCell.Coordinates.x, (int)CurrentCell.Coordinates.y);
 
         if (nearestFigurePath == null) return;
 
         if (nearestFigurePath?.Count > AttackRange)
         {
+
             ActionQueue.Enqueue(() => Move(nearestFigurePath.Pop()));
+            RegisterHeal(SelfHealValue);
         }
         else
         {
@@ -249,7 +339,6 @@ public abstract class FigureBase : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Health = MaxHealth;
     }
 
     // Update is called once per frame
