@@ -415,6 +415,10 @@ PrefabInstance:
       propertyPath: ItemsForSale.Array.data[1].UpgradePrice
       value: 200
       objectReference: {fileID: 0}
+    - target: {fileID: 789179162849647302, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
+      propertyPath: m_RaycastTarget
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1165025167024357847, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.5
@@ -484,6 +488,10 @@ PrefabInstance:
       value: 'Round: 1'
       objectReference: {fileID: 0}
     - target: {fileID: 1573005186885542358, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
+      propertyPath: m_RaycastTarget
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1573005186885542358, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
       propertyPath: m_FontData.m_FontSize
       value: 15
       objectReference: {fileID: 0}
@@ -542,6 +550,10 @@ PrefabInstance:
     - target: {fileID: 2473644556791137744, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
       propertyPath: m_Color.r
       value: 0.19999999
+      objectReference: {fileID: 0}
+    - target: {fileID: 2693587237843004089, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
+      propertyPath: ScoreToWinScreem
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 3031203359058972784, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
       propertyPath: m_AnchorMax.x
@@ -663,6 +675,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4140438879617791548, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
+      propertyPath: m_RaycastTarget
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4217240172431147191, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
       propertyPath: m_ScaleFactor
       value: 1
@@ -670,6 +686,10 @@ PrefabInstance:
     - target: {fileID: 4922376507641106861, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
       propertyPath: m_Name
       value: Board
+      objectReference: {fileID: 0}
+    - target: {fileID: 5332475014637224656, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
+      propertyPath: m_RaycastTarget
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6622622253478410268, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
       propertyPath: field of view
@@ -725,6 +745,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7364523341632986878, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7986098640096742124, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}
+      propertyPath: m_RaycastTarget
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8327723566348884872, guid: ced5ac348bb631f4c90fc41271ff2e38, type: 3}

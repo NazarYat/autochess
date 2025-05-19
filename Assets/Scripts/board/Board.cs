@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
@@ -36,6 +37,7 @@ public class Board : MonoBehaviour
     public List<FigureBase> Figures { get; private set; } = new List<FigureBase>();
     public int ActionDurationMilliseconds = 1000;
     public int InitialBalane = 100;
+    public int ScoreToWinScreem = 2;
     public Inventory Inventory;
     public Text TimerText;
     public Text RoundText;
@@ -214,12 +216,26 @@ public class Board : MonoBehaviour
 
         var winnerIndex = Figures.GroupBy(x => x.PlayerIndex)
             .OrderByDescending(x => x.Sum(y => y.Health))
-            .FirstOrDefault().Key;
+            .FirstOrDefault()?.Key;
 
-        PlayersScore[winnerIndex] += 1;
+        if (winnerIndex != null)
+        {
+            PlayersScore[winnerIndex.Value] += 1;
 
-        PlayerScoreTexts[winnerIndex].text = PlayersScore[winnerIndex].ToString();
+            PlayerScoreTexts[winnerIndex.Value].text = PlayersScore[winnerIndex.Value].ToString();
 
+            if (PlayersScore.Any(i => i >= ScoreToWinScreem))
+            {
+                if (PlayersScore[0] >= ScoreToWinScreem)
+                {
+                    SceneManager.LoadScene("Lose", LoadSceneMode.Single);
+                }
+                if (PlayersScore[1] >= ScoreToWinScreem)
+                {
+                    SceneManager.LoadScene("Win", LoadSceneMode.Single);
+                }
+            }
+        }
         
         StopAllCoroutines();
         StartGame();
